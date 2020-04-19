@@ -5,7 +5,7 @@ LevelDB with indexing and collections for Node.js
 ## Install
 
 ```
-npm i jsonleveldb
+npm i levity
 ```
 
 ## Example
