@@ -1,10 +1,10 @@
-import levity from '.'
+import levelgo from '.'
 import { equal, deepEqual } from 'assert'
 import rimraf from 'rimraf'
 
 rimraf.sync('test-db')
 
-const db = levity('test-db')
+const db = levelgo('test-db')
 
 db.collection('books')
 db.books.createIndex({ author: 1 })

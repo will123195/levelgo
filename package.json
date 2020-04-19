@@ -1,5 +1,5 @@
 {
-  "name": "levity",
+  "name": "levelgo",
   "version": "1.0.2",
   "description": "Simple document store with indexing",
   "module": "index.js",
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/will123195/levity.git"
+    "url": "git+https://github.com/will123195/levelgo.git"
   },
   "keywords": [
     "leveldb",
@@ -18,9 +18,9 @@
   "author": "will123195",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/will123195/levity/issues"
+    "url": "https://github.com/will123195/levelgo/issues"
   },
-  "homepage": "https://github.com/will123195/levity#readme",
+  "homepage": "https://github.com/will123195/levelgo#readme",
   "dependencies": {
     "level": "^6.0.1",
     "subleveldown": "^5.0.0"

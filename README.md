@@ -1,19 +1,19 @@
-# levity
+# levelgo
 
 LevelDB with indexing and collections for Node.js
 
 ## Install
 
 ```
-npm i levity
+npm i levelgo
 ```
 
 ## Example
 
 ```js
-import levity from 'levity'
+import levelgo from 'levelgo'
 
-const db = levity('example-db')
+const db = levelgo('example-db')
 
 db.collection('books')  
 db.books.createIndex({ author: 1 })

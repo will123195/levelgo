@@ -32,7 +32,7 @@ function getReorderedQuery(collectionName, query, indices) {
   return q
 }
 
-export default function jsonleveldb(path) {
+export default function levelgo(path) {
   const db = level(path)
 
   db.collection = collectionName => {
