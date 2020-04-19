@@ -1,6 +1,6 @@
 # levelgo
 
-LevelDB with indexing and collections for Node.js
+Indexed collections for LevelDB with syntax like MongoDB
 
 ## Install
 
