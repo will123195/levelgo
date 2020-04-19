@@ -1,6 +1,6 @@
 # levelgo
 
-Indexed collections for LevelDB with syntax like MongoDB
+Indexed collections for LevelDB (inspired by MongoDB)
 
 ## Install
 
