@@ -26,6 +26,7 @@
     "subleveldown": "^5.0.0"
   },
   "devDependencies": {
-    "esm": "^3.2.25"
+    "esm": "^3.2.25",
+    "rimraf": "^3.0.2"
   }
 }

@@ -1,5 +1,8 @@
 import levity from '.'
 import { equal, deepEqual } from 'assert'
+import rimraf from 'rimraf'
+
+rimraf.sync('test-db')
 
 const db = levity('test-db')
 
@@ -49,6 +52,17 @@ async function example() {
 
   const g = await db.books.find({ author: 'Hemingway' })
   equal(g.length, 1)
+
+  await db.books.put('book4', { 
+    author: 'Will', 
+    title: 'My Book'
+  })
+
+  const h = await db.books.find({ year: 1970 })
+  equal(h.length, 2)
+
+  const i = await db.books.find({ year: null })
+  equal(i.length, 1)
 }
 
 example()
