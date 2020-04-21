@@ -32,6 +32,7 @@ const books = await db.books.find({ author: 'Hemingway' })
 // transaction
 const batch = db.batch()
 batch.books.del('book1')
+batch.books.put('book2', { title: 'TBD' })
 await batch.write()
 ```
 
