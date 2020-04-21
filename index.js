@@ -23,7 +23,7 @@ function getReorderedQuery(collectionName, query, indices) {
   const sIndices = indexFields.map(a => [...a].sort())
   const sQuery = Object.keys(query).sort()
   const n = sIndices.findIndex(fields => fields.join('-') === sQuery.join('-'))
-  if (!n) return
+  if (n === -1) return
   const fields = indexFields[n]
   const q = {}
   fields.forEach(field => {
@@ -39,19 +39,14 @@ export default function levelgo(path) {
     const collection = sub(db, collectionName, { valueEncoding: 'json' })
     const indices = {}
 
-    collection.createIndex = query => {
-      const indexName = getIndexName(collectionName, query)
+    collection.registerIndex = indexKeys => {
+      const indexName = getIndexName(collectionName, indexKeys)
       const index = sub(db, indexName, { valueEncoding: 'json' })
       indices[indexName] = index
 
       collection.on('put', (key, value) => {
-        const indexKey = getIndexKey(query, key, value)
+        const indexKey = getIndexKey(indexKeys, key, value)
         index.put(indexKey, Date.now())
-      })
-      
-      collection.on('del', key => {
-        // const indexKey = getIndexKey(query, key, value)
-        // index.del(indexKey)
       })
     }
 
@@ -61,7 +56,6 @@ export default function levelgo(path) {
         collection.createReadStream()
           .on('data', ({ value }) => results.push(value))
           .on('error', reject)
-          .on('close', () => { })
           .on('end', () => resolve(results))
       })
     }
@@ -74,7 +68,6 @@ export default function levelgo(path) {
         index.createReadStream({ gt, lt })
           .on('data', ({ key }) => results.push(key))
           .on('error', reject)
-          .on('close', () => { })
           .on('end', () => {
             Promise.all(results.map(indexKey => {
               const n = indexKey.lastIndexOf('!') + 1
@@ -89,25 +82,23 @@ export default function levelgo(path) {
     }
 
     collection.find = query => {
-      if (!query) {
-        return findAll()
-      }
-      const indexName = getIndexName(collectionName, query)
-      let index = indices[indexName]
-      if (!index) {
-        // try creating a reordered query
-        const reorderedQuery = getReorderedQuery(collectionName, query, indices)
-        if (!reorderedQuery) {
-          throw new Error(`Index not found: ${indexName}`)
-        }
-        index = indices[getIndexName(collectionName, reorderedQuery)]
-        return find(index, reorderedQuery)
-      } 
-      return find(index, query)
-    }
-
-    collection.reindex = () => {
-      // TODO
+      return Promise.resolve()
+        .then(() => {
+          if ((!query && query !== 0) || !Object.keys(query).length) {
+            return findAll()
+          }
+          const indexName = getIndexName(collectionName, query)
+          let index = indices[indexName]
+          if (!index) {
+            const reorderedQuery = getReorderedQuery(collectionName, query, indices)
+            if (!reorderedQuery) {
+              throw new Error(`Index not found: ${indexName}`)
+            }
+            index = indices[getIndexName(collectionName, reorderedQuery)]
+            return find(index, reorderedQuery)
+          } 
+          return find(index, query)
+        })
     }
 
     db[collectionName] = collection

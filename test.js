@@ -4,12 +4,12 @@ import rimraf from 'rimraf'
 
 rimraf.sync('test-db')
 
-const db = levelgo('test-db')
+let db = levelgo('test-db')
 
 db.collection('books')
-db.books.createIndex({ author: 1 })
-db.books.createIndex({ year: 1 })
-db.books.createIndex({ year: 1, author: 1 })
+db.books.registerIndex({ author: 1 })
+db.books.registerIndex({ year: 1 })
+db.books.registerIndex({ year: 1, author: 1 })
 
 async function example() {
   await db.books.put('book1', { 
@@ -48,6 +48,9 @@ async function example() {
   const f = await db.books.find()
   equal(f.length, 3)
 
+  const f2 = await db.books.find({})
+  equal(f2.length, 3)
+
   await db.books.del('book2')
 
   const g = await db.books.find({ author: 'Hemingway' })
@@ -63,6 +66,25 @@ async function example() {
 
   const i = await db.books.find({ year: null })
   equal(i.length, 1)
+
+  await db.books.find({ title: 'Islands in the Stream' })
+    .catch(err => err)
+    .then(err => {
+      equal(err.message, 'Index not found: books-by-title')
+    })
+
+  await db.close()
+
+  db = levelgo('test-db')
+  db.collection('books')
+  db.books.registerIndex({ year: 1 })
+
+  const j = await db.books.find({ year: 1970 })
+  equal(j.length, 2)
+
+  await db.books.put(0, 'abc')
+  const k = await db.books.get(0)
+  equal(k, 'abc')
 }
 
 example()
