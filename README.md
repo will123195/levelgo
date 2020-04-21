@@ -2,6 +2,8 @@
 
 Indexed collections and transactions for LevelDB (inspired by MongoDB)
 
+[![Build Status](https://travis-ci.org/will123195/levelgo.svg?branch=master)](https://travis-ci.org/will123195/levelgo)
+
 ## Install
 
 ```
