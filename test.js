@@ -7,6 +7,7 @@ rimraf.sync('test-db')
 let db = levelgo('test-db')
 
 db.collection('books')
+db.collection('movies')
 db.books.registerIndex({ author: 1 })
 db.books.registerIndex({ year: 1 })
 db.books.registerIndex({ year: 1, author: 1 })
@@ -89,6 +90,7 @@ async function example() {
     year: 1957
   })
   batch.books.del('book4')
+  batch.movies.put(1, 'Avatar')
   await batch.write()
   const j2 = await db.books.find({ year: 1957 })
   equal(j2.length, 1)
@@ -96,6 +98,8 @@ async function example() {
   equal(j3.length, 2)
   const j4 = await db.books.find()
   equal(j4.length, 3)
+  const j5 = await db.movies.get(1)
+  equal(j5, 'Avatar')
 
 
   await db.close()

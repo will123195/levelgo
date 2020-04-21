@@ -53,7 +53,7 @@ export default function levelgo(path) {
         return Promise.all(ops.map(op => {
           if (op.type === 'put') {
             const collectionName = op.key.split('!')[1]
-            if (!db[collectionName]) return
+            if (!db[collectionName] || !listeners[collectionName]) return
             return Promise.all(listeners[collectionName].map(listener => {
               const key = op.key.substr(collectionName.length + 2)
               return listener(key, op.value)
