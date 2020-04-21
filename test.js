@@ -73,24 +73,29 @@ async function example() {
       equal(err.message, 'Index not found: books-by-title')
     })
 
-  db.begin()
-  db.books.put('book5', { 
+  let batch = db.batch()
+  batch.books.put('book5', { 
     author: 'Dr. Seuss', 
     title: 'The Cat in the Hat',
     year: 1957
   })
-  db.rollback()
   const j1 = await db.books.find({ author: 'Dr. Seuss' })
   equal(j1.length, 1)
-  db.begin()
-  db.books.put('book5', { 
+  
+  batch = db.batch()
+  batch.books.put('book5', { 
     author: 'Dr. Seuss', 
     title: 'The Cat in the Hat',
     year: 1957
   })
-  await db.commit()
+  batch.books.del('book4')
+  await batch.write()
   const j2 = await db.books.find({ year: 1957 })
   equal(j2.length, 1)
+  const j3 = await db.books.find({ author: 'Dr. Seuss' })
+  equal(j3.length, 2)
+  const j4 = await db.books.find()
+  equal(j4.length, 3)
 
 
   await db.close()

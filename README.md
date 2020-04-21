@@ -28,9 +28,9 @@ const book = await db.books.get('book1')
 const books = await db.books.find({ author: 'Hemingway' })
 
 // transaction
-db.begin()
-db.books.del('book1')
-await db.commit()
+const batch = db.batch()
+batch.books.del('book1')
+await batch.write()
 ```
 
 ## API
@@ -61,6 +61,5 @@ await db.commit()
 
 ### Transactions
 
-#### `db.begin()`
-#### `db.commit()` 
-#### `db.rollback()`
+#### `batch = db.batch()`
+#### `batch.write()` 

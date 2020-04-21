@@ -34,19 +34,22 @@ function getReorderedQuery(collectionName, query, indices) {
 
 export default function levelgo(path) {
   const db = level(path, { valueEncoding: 'json' })
-  let batch
   const listeners = {}
+  const collectionNames = {}
 
-  db.begin = () => {
-    batch = db.batch()
-  }
-
-  db.commit = () => {
-    if (!batch) return Promise.resolve()
-    const ops = batch.ops
-    return batch.write()
-      .then(() => {
-        batch = null
+  db.originalBatch = db.batch
+  db.batch = () => {
+    const batch = db.originalBatch()
+    const batchDB = {}
+    Object.keys(collectionNames).forEach(collectionName => {
+      batchDB[collectionName] = {
+        put: (key, value) => batch.put(`!${collectionName}!${key}`, value),
+        del: key => batch.del(`!${collectionName}!${key}`)
+      }
+    })
+    batchDB.write = () => {
+      const { ops } = batch
+      return batch.write().then(() => {
         return Promise.all(ops.map(op => {
           if (op.type === 'put') {
             const collectionName = op.key.split('!')[1]
@@ -58,10 +61,8 @@ export default function levelgo(path) {
           }
         }))
       })
-  }
-
-  db.rollback = () => {
-    batch = null
+    }
+    return batchDB
   }
 
   db.collection = collectionName => {
@@ -131,18 +132,7 @@ export default function levelgo(path) {
         })
     }
 
-    collection.originalDel = collection.del
-    collection.del = key => {
-      if (batch) return batch.del(`!${collectionName}!${key}`)
-      return collection.originalDel(key)
-    }
-
-    collection.originalPut = collection.put
-    collection.put = (key, value) => {
-      if (batch) return batch.put(`!${collectionName}!${key}`, value)
-      return collection.originalPut(key, value)
-    }
-
+    collectionNames[collectionName] = true
     db[collectionName] = collection
   }
 
