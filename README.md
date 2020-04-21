@@ -1,6 +1,6 @@
 # levelgo
 
-Indexed collections for LevelDB (inspired by MongoDB)
+Indexed collections and transactions for LevelDB (inspired by MongoDB)
 
 ## Install
 
@@ -26,25 +26,41 @@ await db.books.put('book1', {
 
 const book = await db.books.get('book1')
 const books = await db.books.find({ author: 'Hemingway' })
+
+// transaction
+db.begin()
+db.books.del('book1')
+await db.commit()
 ```
 
 ## API
 
-#### `db = levelgo( location )`
+#### <code>db = levelgo( location )</code>
 - `location` {String} path of the LevelDB location to be opened, or in browsers, the name of the IDBDatabase to be opened
 
-#### `db.collection( colName )`
+#### <code>db.collection( colName )</code>
 - `colName` {String} name of the collection to initialize
 
-#### `db.*colName*.find( [query] )`
+## Collection methods
+
+#### <code>db.*myCollection*.del( id )</code>
+- `id` {String|Number} primary key of the value to delete
+
+#### <code>db.*myCollection*.find( [query] )</code>
 - `query` {Object} optional selection filter. An index with the same fields must be registered. If blank or empty object, returns all values in the collection.
 
-#### `db.*colName*.get( id )`
+#### <code>db.*myCollection*.get( id )</code>
 - `id` {String|Number} primary key of the value to retrieve
 
-#### `db.*colName*.registerIndex( fields )`
+#### <code>db.*myCollection*.put( id, value )</code>
+- `id` {String|Number} primary key of the value to store
+- `value` {mixed} any stringify-able value to store in the collection
+
+#### <code>db.*myCollection*.registerIndex( fields )</code>
 - `fields` {Object} fields to be indexed. Always set the value of each field to `1` since only ascending indices are currently supported.
 
-#### `db.*colName*.put( id, value )`
-- `id` {String|Number} primary key of the value to store
-- `value` {mixed} any serializable value to store in the collection
+### Transactions
+
+#### `db.begin()`
+#### `db.commit()` 
+#### `db.rollback()`

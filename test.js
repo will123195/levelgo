@@ -73,18 +73,39 @@ async function example() {
       equal(err.message, 'Index not found: books-by-title')
     })
 
+  db.begin()
+  db.books.put('book5', { 
+    author: 'Dr. Seuss', 
+    title: 'The Cat in the Hat',
+    year: 1957
+  })
+  db.rollback()
+  const j1 = await db.books.find({ author: 'Dr. Seuss' })
+  equal(j1.length, 1)
+  db.begin()
+  db.books.put('book5', { 
+    author: 'Dr. Seuss', 
+    title: 'The Cat in the Hat',
+    year: 1957
+  })
+  await db.commit()
+  const j2 = await db.books.find({ year: 1957 })
+  equal(j2.length, 1)
+
+
   await db.close()
 
   db = levelgo('test-db')
   db.collection('books')
   db.books.registerIndex({ year: 1 })
 
-  const j = await db.books.find({ year: 1970 })
-  equal(j.length, 2)
+  const k = await db.books.find({ year: 1970 })
+  equal(k.length, 2)
 
   await db.books.put(0, 'abc')
-  const k = await db.books.get(0)
-  equal(k, 'abc')
+  const l = await db.books.get(0)
+  equal(l, 'abc')
+
 }
 
 example()

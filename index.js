@@ -33,7 +33,36 @@ function getReorderedQuery(collectionName, query, indices) {
 }
 
 export default function levelgo(path) {
-  const db = level(path)
+  const db = level(path, { valueEncoding: 'json' })
+  let batch
+  const listeners = {}
+
+  db.begin = () => {
+    batch = db.batch()
+  }
+
+  db.commit = () => {
+    if (!batch) return Promise.resolve()
+    const ops = batch.ops
+    return batch.write()
+      .then(() => {
+        batch = null
+        return Promise.all(ops.map(op => {
+          if (op.type === 'put') {
+            const collectionName = op.key.split('!')[1]
+            if (!db[collectionName]) return
+            return Promise.all(listeners[collectionName].map(listener => {
+              const key = op.key.substr(collectionName.length + 2)
+              return listener(key, op.value)
+            }))
+          }
+        }))
+      })
+  }
+
+  db.rollback = () => {
+    batch = null
+  }
 
   db.collection = collectionName => {
     const collection = sub(db, collectionName, { valueEncoding: 'json' })
@@ -43,11 +72,13 @@ export default function levelgo(path) {
       const indexName = getIndexName(collectionName, indexKeys)
       const index = sub(db, indexName, { valueEncoding: 'json' })
       indices[indexName] = index
-
-      collection.on('put', (key, value) => {
+      const listener = (key, value) => {
         const indexKey = getIndexKey(indexKeys, key, value)
-        index.put(indexKey, Date.now())
-      })
+        return index.put(indexKey, Date.now())
+      }
+      listeners[collectionName] = listeners[collectionName] || []
+      listeners[collectionName].push(listener)
+      collection.on('put', listener)
     }
 
     function findAll() {
@@ -72,8 +103,7 @@ export default function levelgo(path) {
             Promise.all(results.map(indexKey => {
               const n = indexKey.lastIndexOf('!') + 1
               const key = indexKey.substr(n)
-              return collection.get(key)
-                .catch(() => index.del(indexKey))
+              return collection.get(key).catch(() => index.del(indexKey))
             }))
               .then(docs => docs.filter(Boolean))
               .then(resolve)
@@ -99,6 +129,18 @@ export default function levelgo(path) {
           } 
           return find(index, query)
         })
+    }
+
+    collection.originalDel = collection.del
+    collection.del = key => {
+      if (batch) return batch.del(`!${collectionName}!${key}`)
+      return collection.originalDel(key)
+    }
+
+    collection.originalPut = collection.put
+    collection.put = (key, value) => {
+      if (batch) return batch.put(`!${collectionName}!${key}`, value)
+      return collection.originalPut(key, value)
     }
 
     db[collectionName] = collection
