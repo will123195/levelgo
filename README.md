@@ -65,4 +65,6 @@ await batch.write()
 ### Transactions
 
 #### `batch = db.batch()`
+#### <code>batch.*name*.del( id )`
+#### <code>batch.*name*.put( id, value )`
 #### `batch.write()` 
