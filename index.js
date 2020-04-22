@@ -1,5 +1,6 @@
 import level from 'level'
 import sub from 'subleveldown'
+import get from './get'
 
 function getIndexNamePrefix(collectionName) {
   return `${collectionName}-by-`
@@ -10,9 +11,24 @@ function getIndexName(collectionName, query) {
   return `${prefix}${Object.keys(query).join('-')}`
 }
 
-function getIndexKey(query, key, value) {
-  const indexedValues = Object.keys(query).map(field => value[field] || '!')
-  return `${indexedValues.join('!')}!${key}`
+// convert value into index key string based on the fields in 
+// the config and append the id
+function getIndexKey(config, id, value) {
+  // if (id) console.log({ config, id, value })
+  const indexedValues = Object.keys(config).map(field => {
+    return get(value, field) || '!'
+  })
+  return `${indexedValues.join('!')}!${id}`
+}
+
+// TODO: index multiple chapter names if chapters is an array
+// { 
+//   config: { 'chapters.name': 1 },
+//   key: 'book5',
+//   value: { author: 'Dr. Seuss', chapters: [ { name: 'test' } ] } 
+// }
+function getIndexKeys(config, key, value) {
+  return [getIndexKey(config, key, value)]
 }
 
 function getReorderedQuery(collectionName, query, indices) {
@@ -69,13 +85,15 @@ export default function levelgo(path) {
     const collection = sub(db, collectionName, { valueEncoding: 'json' })
     const indices = {}
 
-    collection.registerIndex = indexKeys => {
-      const indexName = getIndexName(collectionName, indexKeys)
+    collection.registerIndex = config => {
+      const indexName = getIndexName(collectionName, config)
       const index = sub(db, indexName, { valueEncoding: 'json' })
       indices[indexName] = index
       const listener = (key, value) => {
-        const indexKey = getIndexKey(indexKeys, key, value)
-        return index.put(indexKey, Date.now())
+        const indexKeys = getIndexKeys(config, key, value)
+        return Promise.all(indexKeys.map(indexKey => {
+          return index.put(indexKey, Date.now())
+        }))
       }
       listeners[collectionName] = listeners[collectionName] || []
       listeners[collectionName].push(listener)
@@ -92,13 +110,73 @@ export default function levelgo(path) {
       })
     }
 
+    function isConditionalQuery(query) {
+      let isConditional = false
+      Object.keys(query).forEach(field => {
+        const queryValue = query[field]
+        if (queryValue && typeof queryValue === 'object') isConditional = true
+      })
+      return isConditional
+    }
+
+    function isMatch(query, key) {
+      let match = true
+      const fields = Object.keys(query)
+      const values = key.split('!')
+      fields.forEach((field, i) => {
+        const value = values[i]
+        const queryValue = query[field]
+        if (!queryValue || typeof queryValue !== 'object') return
+        // console.log({ query, key, queryValue, value })
+        Object.keys(queryValue).forEach(operator => {
+          switch (operator) {
+            case '$gt': if (value <= queryValue.$gt) match = false
+            case '$gte': if (value < queryValue.$gte) match = false
+            case '$lt': if (value >= queryValue.$lt) match = false
+            case '$lte': if (value > queryValue.$lte) match = false
+          }
+        })
+      })
+      return match
+    }    
+
+    function getRange(query) {
+      const parts = []
+      let isConditional = false
+      Object.keys(query).some(field => {
+        const value = query[field] 
+        const isObject = value && typeof value === 'object'
+        if (!isObject) {
+          parts.push(value)
+        } else {
+          isConditional = true
+        }
+        return isObject
+      })
+      const key = parts.join('!')
+      return {
+        gt: `${key}!`, 
+        lt: isConditional ? `${key}~` : `${key}!~`,
+        isConditional
+      }
+    }
+
     function find(index, query) {
       return new Promise((resolve, reject) => {
         const results = []
-        const gt = getIndexKey(query, '', query)
-        const lt = `${gt}~`
+        // const isConditional = isConditionalQuery(query)
+        // const gt = getIndexKey(query, '', query)
+        // const lt = `${gt}~`
+        // TODO: optimize getRange for compound index
+        // i.e. { author: 'Hemingway', year: { $gt: 1969 } }
+        const { gt, lt, isConditional } = getRange(query)
+        // console.log({ gt, lt, isConditional })
         index.createReadStream({ gt, lt })
-          .on('data', ({ key }) => results.push(key))
+          .on('data', ({ key }) => {
+            if (!isConditional || isMatch(query, key)) {
+              results.push(key)
+            }
+          })
           .on('error', reject)
           .on('end', () => {
             Promise.all(results.map(indexKey => {

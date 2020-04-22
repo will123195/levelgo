@@ -11,6 +11,8 @@ db.collection('movies')
 db.books.registerIndex({ author: 1 })
 db.books.registerIndex({ year: 1 })
 db.books.registerIndex({ year: 1, author: 1 })
+db.books.registerIndex({ 'meta.isbn': 1 })
+db.books.registerIndex({ 'chapters.name': 1 })
 
 async function example() {
   await db.books.put('book1', { 
@@ -26,7 +28,16 @@ async function example() {
   await db.books.put('book3', { 
     author: 'Dr. Seuss', 
     title: 'Mr. Brown Can Moo! Can You?',
-    year: 1970
+    year: 1970,
+    meta: {
+      isbn: 123
+    },
+    chapters: [
+      { 
+        num: 2,
+        name: 'test' 
+      }
+    ]
   })
   
   const a = await db.books.find({ author: 'Tolstoy' })
@@ -101,12 +112,13 @@ async function example() {
   const j5 = await db.movies.get(1)
   equal(j5, 'Avatar')
 
-
   await db.close()
 
   db = levelgo('test-db')
   db.collection('books')
   db.books.registerIndex({ year: 1 })
+  db.books.registerIndex({ 'meta.isbn': 1 })
+  db.books.registerIndex({ 'chapters.name': 1 })
 
   const k = await db.books.find({ year: 1970 })
   equal(k.length, 2)
@@ -115,6 +127,20 @@ async function example() {
   const l = await db.books.get(0)
   equal(l, 'abc')
 
+  const m = await db.books.find({ year: { $gt: 1969 } })
+  equal(m.length, 2)
+
+  const n1 = await db.books.find({ 
+    'meta.isbn': 123
+  })
+  equal(n1.length, 1)
+
+  const n2 = await db.books.find({ 
+    'chapters.name': 'test',
+    // 'chapters.num': { $gt: 1 }
+  })
+  // console.log(n2)
+  // equal(n2.length, 1)
 }
 
 example()
