@@ -13,12 +13,18 @@ db.books.registerIndex({ year: 1 })
 db.books.registerIndex({ year: 1, author: 1 })
 db.books.registerIndex({ 'meta.isbn': 1 })
 db.books.registerIndex({ 'chapters.name': 1 })
+db.books.registerIndex({ 'chapters.name': 1, 'chapters.num': 1 })
+db.books.registerIndex({ 'tags': 1 })
 
 async function example() {
   await db.books.put('book1', { 
     author: 'Hemingway', 
     title: 'Islands in the Stream',
-    year: 1970
+    year: 1970,
+    chapters: [
+      { num: 4, name: 'A' }
+    ],
+    tags: ['classic']
   })
   await db.books.put('book2', { 
     author: 'Hemingway', 
@@ -29,14 +35,13 @@ async function example() {
     author: 'Dr. Seuss', 
     title: 'Mr. Brown Can Moo! Can You?',
     year: 1970,
-    meta: {
-      isbn: 123
-    },
+    meta: [
+      { isbn: 123 },
+      { isbn: 234 }
+    ],
     chapters: [
-      { 
-        num: 2,
-        name: 'test' 
-      }
+      { num: 1, name: 'A' },
+      { num: 2, name: 'B' }
     ]
   })
   
@@ -116,9 +121,13 @@ async function example() {
 
   db = levelgo('test-db')
   db.collection('books')
+  // TODO: await levelgo() will allow persisting indices instead of registering them every time
   db.books.registerIndex({ year: 1 })
+  db.books.registerIndex({ year: 1, author: 1 })
   db.books.registerIndex({ 'meta.isbn': 1 })
   db.books.registerIndex({ 'chapters.name': 1 })
+  db.books.registerIndex({ 'chapters.name': 1, 'chapters.num': 1 })
+  db.books.registerIndex({ 'tags': 1 })
 
   const k = await db.books.find({ year: 1970 })
   equal(k.length, 2)
@@ -127,8 +136,20 @@ async function example() {
   const l = await db.books.get(0)
   equal(l, 'abc')
 
-  const m = await db.books.find({ year: { $gt: 1969 } })
-  equal(m.length, 2)
+  const m1 = await db.books.find({ year: { $gt: 1969 } })
+  equal(m1.length, 2)
+
+  const m2 = await db.books.find({ 
+    author: { $gte: 'H' },
+    year: 1970
+  })
+  equal(m2.length, 1)
+
+  const m3 = await db.books.find({ 
+    author: 'Dr. Seuss',
+    year: { $gt: 1969 } 
+  })
+  equal(m3.length, 1)
 
   const n1 = await db.books.find({ 
     'meta.isbn': 123
@@ -136,11 +157,26 @@ async function example() {
   equal(n1.length, 1)
 
   const n2 = await db.books.find({ 
-    'chapters.name': 'test',
-    // 'chapters.num': { $gt: 1 }
+    'chapters.name': 'A'
   })
-  // console.log(n2)
-  // equal(n2.length, 1)
+  equal(n2.length, 2)
+
+  const n3 = await db.books.find({ 
+    'chapters.name': 'A',
+    'chapters.num': { $lte: 2 }
+  })
+  equal(n3.length, 1)
+
+  const n4 = await db.books.find({ 
+    'chapters.name': 'A',
+    'chapters.num': { $gte: 1, $lt: 5 }
+  })
+  equal(n4.length, 2)
+
+  const n5 = await db.books.find({ 
+    tags: 'classic'
+  })
+  equal(n5.length, 1)
 }
 
 example()

@@ -28,12 +28,6 @@ await db.books.put('book1', {
 
 const book = await db.books.get('book1')
 const books = await db.books.find({ author: 'Hemingway' })
-
-// transaction
-const batch = db.batch()
-batch.books.del('book1')
-batch.books.put('book2', { title: 'TBD' })
-await batch.write()
 ```
 
 ## API
@@ -62,9 +56,47 @@ await batch.write()
 #### <code>db.*name*.registerIndex( fields )</code>
 - `fields` {Object} fields to be indexed. Always set the value of each field to `1` since only ascending indices are currently supported.
 
-### Transactions
+### Atomic Batch
 
 #### `batch = db.batch()`
 #### <code>batch.*name*.del( id )</code>
 #### <code>batch.*name*.put( id, value )</code>
 #### `batch.write()` 
+
+
+## Advanced Example
+
+```js
+import levelgo from 'levelgo'
+
+const db = levelgo('example-db')
+
+db.collection('books')
+
+// you can have compound nested indices
+db.books.registerIndex({ 
+  tags: 1,
+  'reviews.stars': 1
+})
+
+// batch operations are written atomically
+const batch = db.batch()
+batch.books.del('book1')
+batch.books.put('book2', { 
+  author: 'Hemingway', 
+  title: 'Islands in the Stream',
+  year: 1970,
+  reviews: [
+    { stars: 5, username: 'taylor' },
+    { stars: 4, username: 'river' },
+  ],
+  tags: ['classic']
+})
+await batch.write()
+
+// find books that are tagged 'classic' that have at least one review of 4+ stars
+const books = await db.books.find({ 
+  'reviews.stars': { $gte: 4 },
+  tags: 'classic'
+})
+```

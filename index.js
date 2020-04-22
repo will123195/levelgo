@@ -1,6 +1,7 @@
 import level from 'level'
 import sub from 'subleveldown'
 import get from './get'
+import product from './cartesianProduct'
 
 function getIndexNamePrefix(collectionName) {
   return `${collectionName}-by-`
@@ -21,14 +22,58 @@ function getIndexKey(config, id, value) {
   return `${indexedValues.join('!')}!${id}`
 }
 
-// TODO: index multiple chapter names if chapters is an array
-// { 
-//   config: { 'chapters.name': 1 },
-//   key: 'book5',
-//   value: { author: 'Dr. Seuss', chapters: [ { name: 'test' } ] } 
-// }
-function getIndexKeys(config, key, value) {
-  return [getIndexKey(config, key, value)]
+function isObject(value) {
+  return value && typeof value === 'object'
+}
+
+// input: { a: 1, b: [{ c: 2 }, { c: 3 }] }
+// output: [{ a: 1, b: { c: 2 } }, { a: 1, b: { c: 3 } }]
+function cartesianNestedArrays(input) {
+  if (!isObject(input)) return input
+  const output = []
+  const doc = JSON.parse(JSON.stringify(input))
+  // process non-array, non-object keys
+  Object.keys(doc).forEach(key => {
+    const value = doc[key]
+    if (Array.isArray(value) || isObject(value)) return
+    doc[key] = value
+  })
+  // process object keys
+  Object.keys(doc).forEach(key => {
+    let value = doc[key]
+    if (!isObject(value)) return
+    doc[key] = cartesianNestedArrays(value)
+  })
+  // identify array keys
+  const arrayKeys = {}
+  Object.keys(doc).forEach(key => {
+    const value = doc[key]
+    if (Array.isArray(value)) {
+      arrayKeys[key] = value
+    }
+  })
+  if (!Object.keys(arrayKeys).length) return doc
+  // create all permutations of the doc
+  const arrayOfArrays = Object.keys(arrayKeys).map(key => arrayKeys[key])
+  const cartesian = product(arrayOfArrays)
+  cartesian.forEach(permutation => {
+    permutation.forEach((value, i) => {
+      const newDoc = { ...doc }
+      const key = Object.keys(arrayKeys)[i]
+      newDoc[key] = value
+      output.push(newDoc)
+    })
+  })
+  return output.length === 1 ? output[0] : output
+}
+
+function getIndexKeys(config, id, data) {
+  let permutations = cartesianNestedArrays(data)
+  permutations = Array.isArray(permutations) ? permutations : [permutations]
+  const indexKeys = permutations.map(permutation => {
+    return getIndexKey(config, id, permutation)
+  })
+  return [...new Set(indexKeys)]
 }
 
 function getReorderedQuery(collectionName, query, indices) {
@@ -91,6 +136,7 @@ export default function levelgo(path) {
       indices[indexName] = index
       const listener = (key, value) => {
         const indexKeys = getIndexKeys(config, key, value)
+        // console.log({ indexName, indexKeys })
         return Promise.all(indexKeys.map(indexKey => {
           return index.put(indexKey, Date.now())
         }))
@@ -110,15 +156,6 @@ export default function levelgo(path) {
       })
     }
 
-    function isConditionalQuery(query) {
-      let isConditional = false
-      Object.keys(query).forEach(field => {
-        const queryValue = query[field]
-        if (queryValue && typeof queryValue === 'object') isConditional = true
-      })
-      return isConditional
-    }
-
     function isMatch(query, key) {
       let match = true
       const fields = Object.keys(query)
@@ -126,7 +163,11 @@ export default function levelgo(path) {
       fields.forEach((field, i) => {
         const value = values[i]
         const queryValue = query[field]
-        if (!queryValue || typeof queryValue !== 'object') return
+        if (!queryValue || typeof queryValue !== 'object') {
+          // console.log({ value, queryValue })
+          if (value !== String(queryValue)) match = false
+          return
+        }
         // console.log({ query, key, queryValue, value })
         Object.keys(queryValue).forEach(operator => {
           switch (operator) {
@@ -164,11 +205,6 @@ export default function levelgo(path) {
     function find(index, query) {
       return new Promise((resolve, reject) => {
         const results = []
-        // const isConditional = isConditionalQuery(query)
-        // const gt = getIndexKey(query, '', query)
-        // const lt = `${gt}~`
-        // TODO: optimize getRange for compound index
-        // i.e. { author: 'Hemingway', year: { $gt: 1969 } }
         const { gt, lt, isConditional } = getRange(query)
         // console.log({ gt, lt, isConditional })
         index.createReadStream({ gt, lt })
