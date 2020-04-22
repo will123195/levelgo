@@ -46,6 +46,12 @@ const books = await db.books.find({ author: 'Hemingway' })
 #### <code>db.*name*.find( [query] )</code>
 - `query` {Object} optional selection filter. An index with the same fields must be registered. If blank or empty object, returns all values in the collection.
 
+- The following Mongo-style query operators are supported:
+    - `$gt`
+    - `$lt`
+    - `$gte`
+    - `$lte`
+
 #### <code>db.*name*.get( id )</code>
 - `id` {String|Number} primary key of the value to retrieve
 
