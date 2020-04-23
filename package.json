@@ -1,6 +1,6 @@
 {
   "name": "levelgo",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Simple document store with indexing",
   "module": "index.js",
   "scripts": {
