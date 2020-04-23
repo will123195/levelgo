@@ -15,6 +15,7 @@ db.books.registerIndex({ 'meta.isbn': 1 })
 db.books.registerIndex({ 'chapters.name': 1 })
 db.books.registerIndex({ 'chapters.name': 1, 'chapters.num': 1 })
 db.books.registerIndex({ 'tags': 1 })
+db.books.registerIndex({ 'chapters.length': 1 })
 
 async function example() {
   await db.books.put('book1', { 
@@ -128,6 +129,7 @@ async function example() {
   db.books.registerIndex({ 'chapters.name': 1 })
   db.books.registerIndex({ 'chapters.name': 1, 'chapters.num': 1 })
   db.books.registerIndex({ 'tags': 1 })
+  db.books.registerIndex({ 'chapters.length': 1 })
 
   const k = await db.books.find({ year: 1970 })
   equal(k.length, 2)
@@ -177,6 +179,24 @@ async function example() {
     tags: 'classic'
   })
   equal(n5.length, 1)
+
+  const o1 = await db.books.find({ 'meta.isbn': { $eq: 123 } })
+  equal(o1.length, 1)
+
+  const o2 = await db.books.find({ 'chapters.name': { $eq: 'B' } })
+  equal(o2.length, 1)
+
+  const o3 = await db.books.find({ 'chapters.name': { $gt: null, $ne: 'A' } })
+  equal(o3.length, 1)
+
+  const o4 = await db.books.find({ 'chapters.name': { $in: ['A', 'B'] } })
+  equal(o4.length, 2)
+
+  const o5 = await db.books.find({ 'chapters.name': { $gt: null, $nin: ['A', 'C'] } })
+  equal(o5.length, 1)
+
+  const p1 = await db.books.find({ 'chapters.length': 2 })
+  equal(p1.length, 1)
 }
 
 example()

@@ -164,17 +164,20 @@ export default function levelgo(path) {
         const value = values[i]
         const queryValue = query[field]
         if (!queryValue || typeof queryValue !== 'object') {
-          // console.log({ value, queryValue })
           if (value !== String(queryValue)) match = false
           return
         }
-        // console.log({ query, key, queryValue, value })
         Object.keys(queryValue).forEach(operator => {
+          // TODO: validate the operator value
           switch (operator) {
-            case '$gt': if (value <= queryValue.$gt) match = false
-            case '$gte': if (value < queryValue.$gte) match = false
-            case '$lt': if (value >= queryValue.$lt) match = false
-            case '$lte': if (value > queryValue.$lte) match = false
+            case '$gt': if (value <= queryValue.$gt) match = false ;break
+            case '$gte': if (value < queryValue.$gte) match = false ;break
+            case '$lt': if (value >= queryValue.$lt) match = false ;break
+            case '$lte': if (value > queryValue.$lte) match = false ;break
+            case '$in': if (!queryValue.$in.includes(value)) match = false ;break
+            case '$nin': if (queryValue.$nin.includes(value)) match = false ;break
+            case '$eq': if (queryValue.$eq != value) match = false ;break
+            case '$ne': if (queryValue.$ne == value) match = false ;break
           }
         })
       })
@@ -204,21 +207,20 @@ export default function levelgo(path) {
 
     function find(index, query) {
       return new Promise((resolve, reject) => {
-        const results = []
+        const results = {}
         const { gt, lt, isConditional } = getRange(query)
-        // console.log({ gt, lt, isConditional })
         index.createReadStream({ gt, lt })
           .on('data', ({ key }) => {
             if (!isConditional || isMatch(query, key)) {
-              results.push(key)
+              const n = key.lastIndexOf('!') + 1
+              const collectionKey = key.substr(n)
+              results[collectionKey] = true
             }
           })
           .on('error', reject)
           .on('end', () => {
-            Promise.all(results.map(indexKey => {
-              const n = indexKey.lastIndexOf('!') + 1
-              const key = indexKey.substr(n)
-              return collection.get(key).catch(() => index.del(indexKey))
+            Promise.all(Object.keys(results).map(key => {
+              return collection.get(key).catch(() => index.del(key))
             }))
               .then(docs => docs.filter(Boolean))
               .then(resolve)

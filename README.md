@@ -1,6 +1,6 @@
 # levelgo
 
-Indexed collections and transactions for LevelDB (inspired by MongoDB)
+Indexed collections for LevelDB (inspired by MongoDB)
 
 [![Build Status](https://travis-ci.org/will123195/levelgo.svg?branch=master)](https://travis-ci.org/will123195/levelgo)
 
@@ -46,11 +46,15 @@ const books = await db.books.find({ author: 'Hemingway' })
 #### <code>db.*name*.find( [query] )</code>
 - `query` {Object} optional selection filter. An index with the same fields must be registered. If blank or empty object, returns all values in the collection.
 
-- The following Mongo-style query operators are supported:
+- Mongo-style comparison query operators are available:
     - `$gt`
     - `$lt`
     - `$gte`
     - `$lte`
+    - `$in`
+    - `$nin`
+    - `$eq`
+    - `$ne`
 
 #### <code>db.*name*.get( id )</code>
 - `id` {String|Number} primary key of the value to retrieve
