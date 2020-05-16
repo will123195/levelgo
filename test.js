@@ -202,6 +202,21 @@ async function example() {
   const q1 = await db.books.find({ year: 0 })
   ok(q1[0].year === 0)
 
+  await db.books.put('zero+array[]', { year: 0, b: [] })
+  const q1a = await db.books.find({ year: 0 })
+  equal(q1a.length, 2)
+  ok(q1a[0].year === 0)
+
+  await db.books.put('zero+array[1]', { year: 0, b: [0] })
+  const q1b = await db.books.find({ year: 0 })
+  equal(q1b.length, 3)
+  ok(q1b[2].year === 0)
+
+  await db.books.put('zero+emptyobj', { year: 0, b: {} })
+  const q1c = await db.books.find({ year: 0 })
+  equal(q1c.length, 4)
+  ok(q1c[3].year === 0)
+
   await db.books.put('false', { year: false })
   const q2 = await db.books.find({ year: false })
   ok(q2[0].year === false)

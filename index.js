@@ -50,7 +50,7 @@ function cartesianNestedArrays(input) {
   const arrayKeys = {}
   Object.keys(doc).forEach(key => {
     const value = doc[key]
-    if (Array.isArray(value)) {
+    if (Array.isArray(value) && value.length) {
       arrayKeys[key] = value
     }
   })
