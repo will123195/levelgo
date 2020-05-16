@@ -18,7 +18,7 @@ function getIndexKey(config, id, value) {
   // if (id) console.log({ config, id, value })
   const indexedValues = Object.keys(config).map(field => {
     const indexedValue = get(value, field)
-    if (indexedValue === null || indexedValue === undefined) return '!'
+    if (indexedValue === null || indexedValue === undefined) return ''
     return indexedValue
   })
   return `${indexedValues.join('!')}!${id}`
