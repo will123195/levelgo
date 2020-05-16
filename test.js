@@ -1,5 +1,5 @@
 import levelgo from '.'
-import { equal, deepEqual } from 'assert'
+import { equal, deepEqual, ok } from 'assert'
 import rimraf from 'rimraf'
 
 rimraf.sync('test-db')
@@ -197,6 +197,28 @@ async function example() {
 
   const p1 = await db.books.find({ 'chapters.length': 2 })
   equal(p1.length, 1)
+
+  await db.books.put('zero', { year: 0 })
+  const q1 = await db.books.find({ year: 0 })
+  ok(q1[0].year === 0)
+
+  await db.books.put('false', { year: false })
+  const q2 = await db.books.find({ year: false })
+  ok(q2[0].year === false)
+  equal(q2.length, 1)
+
+  // null, undefined and empty string are indexed together
+
+  await db.books.put('null', { year: null })
+  const q3 = await db.books.find({ year: null })
+  equal(q3.length, 2)
+
+  const q4 = await db.books.find({ year: undefined })
+  equal(q4.length, 2)
+
+  await db.books.put('empty', { year: '' })
+  const q5 = await db.books.find({ year: '' })
+  equal(q5.length, 3)
 }
 
 example()

@@ -56,6 +56,8 @@ const books = await db.books.find({ author: 'Hemingway' })
     - `$eq`
     - `$ne`
 
+- Note: `null`, `undefined` and "empty string" values are indexed the same as "blank" values.
+
 #### <code>db.*name*.get( id )</code>
 - `id` {String|Number} primary key of the value to retrieve
 

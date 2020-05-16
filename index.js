@@ -17,7 +17,9 @@ function getIndexName(collectionName, query) {
 function getIndexKey(config, id, value) {
   // if (id) console.log({ config, id, value })
   const indexedValues = Object.keys(config).map(field => {
-    return get(value, field) || '!'
+    const indexedValue = get(value, field)
+    if (indexedValue === null || indexedValue === undefined) return '!'
+    return indexedValue
   })
   return `${indexedValues.join('!')}!${id}`
 }
