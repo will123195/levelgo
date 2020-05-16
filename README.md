@@ -58,6 +58,9 @@ const books = await db.books.find({ author: 'Hemingway' })
 
 - Note: `null`, `undefined` and "empty string" values are indexed the same as "blank" values.
 
+#### <code>db.*name*.findKeys( [query] )</code>
+- `query` {Object} optional selection filter. An index with the same fields must be registered. If blank or empty object, returns all keys (ids) in the collection.
+
 #### <code>db.*name*.get( id )</code>
 - `id` {String|Number} primary key of the value to retrieve
 

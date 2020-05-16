@@ -148,11 +148,14 @@ export default function levelgo(path) {
       collection.on('put', listener)
     }
 
-    function findAll() {
+    function findAll(options = {}) {
       return new Promise((resolve, reject) => {
         const results = []
         collection.createReadStream()
-          .on('data', ({ value }) => results.push(value))
+          .on('data', ({ key, value }) => {
+            const result = options.returnKeys ? key : value
+            results.push(result)
+          })
           .on('error', reject)
           .on('end', () => resolve(results))
       })
@@ -207,7 +210,7 @@ export default function levelgo(path) {
       }
     }
 
-    function find(index, query) {
+    function find(index, query, options = {}) {
       return new Promise((resolve, reject) => {
         const results = {}
         const { gt, lt, isConditional } = getRange(query)
@@ -221,7 +224,9 @@ export default function levelgo(path) {
           })
           .on('error', reject)
           .on('end', () => {
-            Promise.all(Object.keys(results).map(key => {
+            const keys = Object.keys(results)
+            if (options.returnKeys) return resolve(keys)
+            Promise.all(keys.map(key => {
               return collection.get(key).catch(() => index.del(key))
             }))
               .then(docs => docs.filter(Boolean))
@@ -230,11 +235,11 @@ export default function levelgo(path) {
       })
     }
 
-    collection.find = query => {
+    collection.find = (query, options) => {
       return Promise.resolve()
         .then(() => {
           if ((!query && query !== 0) || !Object.keys(query).length) {
-            return findAll()
+            return findAll(options)
           }
           const indexName = getIndexName(collectionName, query)
           let index = indices[indexName]
@@ -244,10 +249,14 @@ export default function levelgo(path) {
               throw new Error(`Index not found: ${indexName}`)
             }
             index = indices[getIndexName(collectionName, reorderedQuery)]
-            return find(index, reorderedQuery)
+            return find(index, reorderedQuery, options)
           } 
-          return find(index, query)
+          return find(index, query,  options)
         })
+    }
+
+    collection.findKeys = query => {
+      return collection.find(query, { returnKeys: true })
     }
 
     collectionNames[collectionName] = true

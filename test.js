@@ -222,8 +222,6 @@ async function example() {
   ok(q2[0].year === false)
   equal(q2.length, 1)
 
-  // null, undefined and empty string are indexed together
-
   await db.books.put('null', { year: null })
   const q3 = await db.books.find({ year: null })
   equal(q3.length, 2)
@@ -234,6 +232,14 @@ async function example() {
   await db.books.put('empty', { year: '' })
   const q5 = await db.books.find({ year: '' })
   equal(q5.length, 3)
+
+  const r1 = await db.books.findKeys({ year: 0 })
+  equal(r1.length, 4)
+  deepEqual(r1, ['zero', 'zero+array[1]', 'zero+array[]', 'zero+emptyobj'])
+
+  const r2 = await db.books.findKeys()
+  equal(r2[1], 'book1')
+  equal(r2.length, 11)
 }
 
 example()
