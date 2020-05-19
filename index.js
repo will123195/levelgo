@@ -110,6 +110,8 @@ export default function levelgo(path) {
         del: key => batch.del(`!${collectionName}!${key}`)
       }
     })
+    batchDB.put = (key, value) => batch.put(key, value)
+    batchDB.del = key => batch.del(key)
     batchDB.write = () => {
       const { ops } = batch
       return batch.write().then(() => {
